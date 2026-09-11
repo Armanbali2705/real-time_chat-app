@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket Test Client</title>
+</head>
+<body>
+    <h3>Socket.IO Test Client</h3>
+
+    <label>Your JWT token:</label><br>
+    <input id="tokenInput" type="text" style="width: 500px"><br><br>
+
+    <label>Other user's ID (to open a room with):</label><br>
+    <input id="otherUserId" type="number" style="width: 100px"><br><br>
+
+    <button onclick="connectSocket()">Connect</button>
+    <button onclick="joinRoom()">Join Room</button>
+    <br>
+    <label>Message:</label><br>
+    <input id="messageInput" type="text" style="width: 400px"><br>
+    <button onclick="sendMessage()">Send Message</button>
+
+    <pre id="log" style="background:#eee; padding:10px; margin-top:20px;"></pre>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        let socket;
+
+        function log(message) {
+            document.getElementById('log').textContent += message + '\n';
+        }
+
+        function connectSocket() {
+            const token = document.getElementById('tokenInput').value;
+
+            socket = io('http://localhost:3000', {
+                auth: { token: token }
+            });
+
+            socket.on('connect', () => {
+                log('Connected! Socket ID: ' + socket.id);
+            });
+
+            socket.on('connect_error', (err) => {
+                log('Connection failed: ' + err.message);
+            });
+
+            socket.on('disconnect', () => {
+                log('Disconnected from server');
+            });
+            socket.on('newMessage', (message) => {
+                log(`[${message.senderUsername}]: ${message.content}`);
+            });
+
+            socket.on('messageError', (err) => {
+                log('Error: ' + err.error);
+            });
+        }
+
+        function joinRoom() {
+            const otherUserId = Number(document.getElementById('otherUserId').value);
+            socket.emit('joinRoom', otherUserId);
+            log('Requested to join room with user ' + otherUserId);
+        }
+
+        function sendMessage() {
+            const otherUserId = Number(document.getElementById('otherUserId').value);
+            const content = document.getElementById('messageInput').value;
+            socket.emit('sendMessage', { receiverId: otherUserId, content: content });
+        }
+    </script>
+</body>
+</html>

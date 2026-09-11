@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #14171F;
+            --panel: #1B1F2E;
+            --panel-hover: #232840;
+            --border: #2A2F42;
+            --accent: #FF6B4A;
+            --accent-dim: #4A2A22;
+            --online: #3ED598;
+            --text: #ECEDF2;
+            --text-muted: #8B90A3;
+            --bubble-theirs: #232840;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* ---------- Auth screen ---------- */
+        #authScreen {
+            margin: auto;
+            width: 340px;
+            padding: 40px 32px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+        #authScreen h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            margin: 0 0 4px;
+        }
+        #authSubtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0 0 24px;
+        }
+        #authScreen input {
+            width: 100%;
+            padding: 12px 14px;
+            margin: 6px 0;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        #authScreen input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        #authScreen button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 14px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #14171F;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #authScreen button:hover { opacity: 0.9; }
+        #switchModeBtn {
+            background: none !important;
+            color: var(--text-muted) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 400 !important;
+            font-size: 12px !important;
+            margin-top: 10px !important;
+        }
+        #authError { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 10px; min-height: 14px; }
+
+        /* ---------- Chat screen ---------- */
+        #chatScreen { display: none; width: 100%; height: 100%; }
+
+        #sidebar {
+            width: 280px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        #sidebarHeader {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        #sidebarHeader h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            margin: 0;
+        }
+        #sidebarHeader span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        #contactList { flex: 1; overflow-y: auto; }
+
+        .contact {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+        .contact:hover { background: var(--panel-hover); }
+        .contact.active { background: var(--panel-hover); border-left-color: var(--accent); }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            color: #14171F;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .statusDot {
+            position: absolute;
+            bottom: -1px; right: -1px;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--panel);
+        }
+        .statusDot.online { background: var(--online); }
+        .statusDot.offline { background: var(--text-muted); }
+
+        .contactName { font-weight: 500; font-size: 14px; }
+        .contactStatus { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+        #chatArea { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        #chatHeader {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        #chatHeader .avatar { width: 34px; height: 34px; font-size: 13px; }
+        #chatHeaderName { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; }
+        #chatHeaderStatus { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+        #emptyState {
+            margin: auto;
+            text-align: center;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        #loadOlderBtn {
+            display: none;
+            margin: 12px auto 0;
+            padding: 7px 16px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        #loadOlderBtn:hover { border-color: var(--accent); color: var(--accent); }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 24px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .msgRow { display: flex; margin: 3px 0; max-width: 100%; }
+        .msgRow.mine { justify-content: flex-end; }
+
+        .msg {
+            padding: 10px 14px;
+            border-radius: 14px;
+            max-width: 55%;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+        }
+        .msg.mine {
+            background: linear-gradient(135deg, var(--accent), #e85a3c);
+            color: #14171F;
+            border-bottom-right-radius: 4px;
+        }
+        .msg.theirs {
+            background: var(--bubble-theirs);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msgMeta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            opacity: 0.65;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stamp {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid currentColor;
+            font-size: 8px;
+            animation: stampIn 0.3s ease;
+        }
+        @keyframes stampIn {
+            from { transform: scale(0) rotate(-20deg); opacity: 0; }
+            to { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        #typingIndicator {
+            height: 22px;
+            padding: 0 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        #inputArea {
+            display: none;
+            padding: 16px 24px 20px;
+            gap: 10px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        #messageInput:focus { outline: none; border-color: var(--accent); }
+        #sendBtn {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: #14171F;
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        #sendBtn:hover { opacity: 0.9; }
+
+        #messages::-webkit-scrollbar, #contactList::-webkit-scrollbar { width: 8px; }
+        #messages::-webkit-scrollbar-thumb, #contactList::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="authScreen">
+        <h3 id="authTitle">Sign in</h3>
+        <p id="authSubtitle">// real-time messaging, encrypted-ish</p>
+        <input id="usernameField" placeholder="Username (register only)" style="display:none">
+        <input id="emailField" placeholder="Email">
+        <input id="passwordField" type="password" placeholder="Password">
+        <button onclick="handleAuth()" id="authSubmitBtn">Log in</button>
+        <button onclick="toggleAuthMode()" id="switchModeBtn">Don't have an account? Register</button>
+        <div id="authError"></div>
+    </div>
+
+    <div id="chatScreen">
+        <div id="sidebar">
+            <div id="sidebarHeader">
+                <h2>Chats</h2>
+                <div style="display:flex; gap:8px; margin:10px 0;">
+                    <button id="tabChats" onclick="switchTab('chats')" style="flex:1; padding:6px; background:var(--panel-hover); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer;">Chats</button>
+                    <button id="tabNiches" onclick="switchTab('niches')" style="flex:1; padding:6px; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer;">Niches</button>
+                </div>
+
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <button class="filterTab" data-filter="all" onclick="setContactFilter('all')" style="flex:1; padding:5px; background:var(--panel-hover); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:10px; cursor:pointer;">All</button>
+                    <button class="filterTab" data-filter="unread" onclick="setContactFilter('unread')" style="flex:1; padding:5px; background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:10px; cursor:pointer;">Unread</button>
+                    <button class="filterTab" data-filter="favorites" onclick="setContactFilter('favorites')" style="flex:1; padding:5px; background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:10px; cursor:pointer;">★</button>
+                    <button class="filterTab" data-filter="groups" onclick="setContactFilter('groups')" style="flex:1; padding:5px; background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:10px; cursor:pointer;">Groups</button>
+                </div>
+
+                <input id="searchInput" placeholder="Search users..." oninput="handleSearch()" style="width:100%; margin-top:10px; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px;">
+                <div id="searchResults"></div>
+                <div id="requestsSection">
+                    <div id="requestsHeader" onclick="toggleRequests()" style="cursor:pointer; padding:8px 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">▸ requests (<span id="requestCount">0</span>)</div>
+                    <div id="requestsList" style="display:none;"></div>
+                </div>
+                <div id="sentRequestsSection">
+                    <div id="sentRequestsHeader" onclick="toggleSentRequests()" style="cursor:pointer; padding:8px 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">▸ sent (<span id="sentRequestCount">0</span>)</div>
+                    <div id="sentRequestsList" style="display:none;"></div>
+                </div>
+                <span id="myStatusLine">online</span>
+                <button onclick="logout()" style="margin-top:8px; width:100%; padding:6px; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer;">Log out</button>
+            </div>
+            <div id="contactList"></div>
+            <div id="nichesPanel" style="display:none; flex:1; overflow-y:auto; padding:0 16px;">
+                <div style="display:flex; gap:6px; margin:12px 0;">
+                    <input id="newNicheInput" placeholder="Start a new niche..." style="flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px;">
+                    <button onclick="createNiche()" style="padding:8px 12px; background:var(--accent); border:none; border-radius:6px; color:#14171F; font-size:12px; cursor:pointer;">+</button>
+                </div>
+                <input id="nicheSearchInput" placeholder="Search all niches..." oninput="handleNicheSearch()" style="width:100%; margin-bottom:10px; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px;">
+                <div id="nicheSearchResults"></div>
+                <div id="followingLabel" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin:8px 0 4px;">following</div>
+                <div id="nicheList"></div>
+                <div id="myNichesLabel" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin:16px 0 4px;">my niches</div>
+                <div id="myNicheList"></div>
+           </div>
+        </div>
+        <div id="chatArea">
+            <div id="chatHeader">
+                <div class="avatar" id="headerAvatar"></div>
+                <div style="flex:1;">
+                    <div id="chatHeaderName"></div>
+                    <div id="chatHeaderStatus"></div>
+                </div>
+                <button id="groupOptionsBtn" onclick="showGroupOptions()" style="display:none; background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); cursor:pointer; padding:6px 10px; font-size:12px;">⋮</button>
+            </div>
+            <div id="emptyState">Select a conversation to start messaging</div>
+            <button id="loadOlderBtn" onclick="loadOlderMessages()">↑ load older messages</button>
+            <div id="messages"></div>
+            <div id="typingIndicator"></div>
+            <div id="inputArea">
+                <input type="file" id="fileInput" style="display:none" onchange="handleFileSelected()">
+                <button onclick="document.getElementById('fileInput').click()" style="background:none; border:1px solid var(--border); border-radius:50%; width:38px; height:38px; color:var(--text-muted); cursor:pointer; font-size:16px;">📎</button>
+                <input id="messageInput" placeholder="Write a message..." onkeyup="handleTyping()">
+                <button id="sendBtn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+
+<div id="nichesMainArea" style="display:none; flex:1; overflow:hidden;">
+    <div id="nicheDetailArea" style="flex:1; display:flex; flex-direction:column; min-width:0; border-right:1px solid var(--border);">
+        <div id="nicheEmptyState" style="margin:auto; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Select a niche to view it here</div>
+
+        <div id="nicheDetailContent" style="display:none; flex-direction:column; height:100%;">
+            <div style="padding:16px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;">
+                <button onclick="backToNicheList()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px;">←</button>
+                <div>
+                    <div id="nicheDetailName" style="font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px;"></div>
+                    <div id="nicheDetailDesc" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);"></div>
+                </div>
+            </div>
+
+            <div id="subnicheRow" style="display:none; gap:8px; padding:12px 24px; overflow-x:auto; border-bottom:1px solid var(--border);"></div>
+
+            <div style="padding:16px 24px; border-bottom:1px solid var(--border);">
+                <textarea id="newPostInput" placeholder="Post something in this niche..." style="width:100%; padding:10px; background:var(--panel); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px; resize:vertical; min-height:50px;"></textarea>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+                    <input type="file" id="nichePostFileInput" accept="image/*,video/*" style="display:none" onchange="handleNichePostFileSelected()">
+                    <button onclick="document.getElementById('nichePostFileInput').click()" style="background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); cursor:pointer; padding:6px 10px; font-size:12px;">📎 <span id="nichePostFileLabel">Add photo/video</span></button>
+                    <button onclick="createPost()" style="padding:6px 16px; background:var(--accent); border:none; border-radius:6px; color:#14171F; font-size:12px; cursor:pointer;">Post</button>
+                </div>
+            </div>
+
+            <div id="postsList" style="flex:1; overflow-y:auto; padding:16px 24px;"></div>
+        </div>
+    </div>
+
+    <div id="exploreArea" style="width:340px; flex-shrink:0; overflow-y:auto; padding:20px;">
+        <h2 style="font-family:'Space Grotesk',sans-serif; font-size:18px; margin:0 0 16px;">Explore</h2>
+        <div id="exploreAreaGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
+    </div>
+</div>
+
+    </div>
+
+    <div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
+        <div id="modalBox" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:24px; width:360px; max-height:80vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 id="modalTitle" style="font-family:'Space Grotesk',sans-serif; font-size:16px; margin:0;"></h3>
+                <button onclick="closeModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px;">✕</button>
+            </div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        let isRegisterMode = false;
+        let myToken = null;
+        let myUserId = null;
+        let socket = null;
+        let activeContactId = null;
+        let onlineStatus = {};
+        let typingTimeout = null;
+        let oldestLoadedId = null;
+        let noMoreHistory = false;
+
+        let contacts = [];
+
+        async function loadContacts() {
+            const res = await fetch('http://localhost:3000/connections/accepted', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            contacts = await res.json();
+            renderSidebar();
+        }
+
+        const AVATAR_COLORS = ['#FF6B4A', '#3ED598', '#6C8CFF', '#FFC857', '#C77DFF', '#4ECDC4'];
+        function avatarColor(userId) { return AVATAR_COLORS[userId % AVATAR_COLORS.length]; }
+        function initials(name) { return name.slice(0, 2).toUpperCase(); }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('authTitle').textContent = isRegisterMode ? 'Create account' : 'Sign in';
+            document.getElementById('authSubmitBtn').textContent = isRegisterMode ? 'Register' : 'Log in';
+            document.getElementById('switchModeBtn').textContent = isRegisterMode ? 'Already have an account? Log in' : "Don't have an account? Register";
+            document.getElementById('usernameField').style.display = isRegisterMode ? 'block' : 'none';
+        }
+
+        async function handleAuth() {
+            const username = document.getElementById('usernameField').value;
+            const email = document.getElementById('emailField').value;
+            const password = document.getElementById('passwordField').value;
+            const errorDiv = document.getElementById('authError');
+            errorDiv.style.color = '#FF6B4A';
+            errorDiv.textContent = '';
+
+            const endpoint = isRegisterMode ? '/register' : '/login';
+            const body = isRegisterMode ? { username, email, password } : { email, password };
+
+            try {
+                const res = await fetch(`http://localhost:3000${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorDiv.textContent = data.error || 'Something went wrong';
+                    return;
+                }
+
+                if (isRegisterMode) {
+                    errorDiv.style.color = 'var(--online)';
+                    errorDiv.textContent = 'Registered — now log in.';
+                    toggleAuthMode();
+                    return;
+                }
+
+                myToken = data.token;
+                myUserId = data.userId;
+                enterChat();
+
+            } catch (err) {
+                errorDiv.textContent = 'Could not reach server';
+            }
+        }
+
+
+        let searchTimeout = null;
+
+        function handleSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(runSearch, 300);
+        }
+
+        async function runSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+
+            if (!query) return;
+
+            const res = await fetch(`http://localhost:3000/users/search?query=${encodeURIComponent(query)}`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const users = await res.json();
+
+            users.forEach(u => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 4px;';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = u.username;
+                nameSpan.style.fontSize = '13px';
+
+                const btn = document.createElement('button');
+                btn.textContent = 'Connect';
+                btn.style.cssText = 'padding:4px 10px; background:var(--accent); border:none; border-radius:12px; color:#14171F; font-size:11px; cursor:pointer; font-family:"JetBrains Mono",monospace;';
+                btn.onclick = () => sendConnectionRequest(u.id, btn);
+
+                row.appendChild(nameSpan);
+                row.appendChild(btn);
+                resultsDiv.appendChild(row);
+            });
+        }
+
+        async function sendConnectionRequest(addresseeId, btnEl) {
+            try {
+                const res = await fetch('http://localhost:3000/connections/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                    body: JSON.stringify({ addresseeId })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    btnEl.textContent = data.status || 'error';
+                    return;
+                }
+                btnEl.textContent = 'Pending';
+                btnEl.disabled = true;
+                btnEl.style.opacity = '0.5';
+            } catch (err) {
+                btnEl.textContent = 'error';
+            }
+        }
+
+        function toggleRequests() {
+            const list = document.getElementById('requestsList');
+            const isOpen = list.style.display === 'block';
+            list.style.display = isOpen ? 'none' : 'block';
+            document.getElementById('requestsHeader').firstChild.textContent = isOpen ? '▸ ' : '▾ ';
+            if (!isOpen) loadPendingRequests();
+        }
+
+        async function loadPendingRequests() {
+            const res = await fetch('http://localhost:3000/connections/pending', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const requests = await res.json();
+
+            document.getElementById('requestCount').textContent = requests.length;
+
+            const listDiv = document.getElementById('requestsList');
+            listDiv.innerHTML = '';
+
+            requests.forEach(r => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 4px;';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = r.requester_username;
+                nameSpan.style.fontSize = '13px';
+
+                const acceptBtn = document.createElement('button');
+                acceptBtn.textContent = '✓';
+                acceptBtn.style.cssText = 'padding:3px 8px; background:var(--online); border:none; border-radius:6px; margin-right:4px; cursor:pointer;';
+                acceptBtn.onclick = () => respondToRequest(r.id, true, r.requester_id, r.requester_username);
+
+                const declineBtn = document.createElement('button');
+                declineBtn.textContent = '✕';
+                declineBtn.style.cssText = 'padding:3px 8px; background:var(--border); border:none; border-radius:6px; cursor:pointer; color:var(--text);';
+                declineBtn.onclick = () => respondToRequest(r.id, false, r.requester_id, r.requester_username);
+                const btnGroup = document.createElement('div');
+                btnGroup.appendChild(acceptBtn);
+                btnGroup.appendChild(declineBtn);
+
+                row.appendChild(nameSpan);
+                row.appendChild(btnGroup);
+                listDiv.appendChild(row);
+            });
+        }
+
+
+        async function respondToRequest(connectionId, accept, otherUserId, otherUsername) {
+    const res = await fetch(`http://localhost:3000/connections/${connectionId}/respond`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+        body: JSON.stringify({ accept })
+    });
+
+    if (res.ok && accept) {
+        await loadContacts();
+        openConversation(otherUserId, otherUsername);
+        toggleRequests();
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+
+    loadPendingRequests();
+}
+
+
+        function enterChat() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'flex';
+            connectSocket();
+            loadContacts();
+            loadPendingRequests();
+            loadUnreadCounts();
+            loadMyGroups();
+            loadGroupInvites();
+            loadGroupUnreadCounts();
+        }
+
+function renderSidebar() {
+    const list = document.getElementById('contactList');
+    list.innerHTML = '';
+
+    if (contactFilter === 'groups') {
+        const createBtn = document.createElement('div');
+        createBtn.textContent = '+ New Group';
+        createBtn.style.cssText = 'padding:12px 16px; color:var(--accent); font-family:"JetBrains Mono",monospace; font-size:12px; cursor:pointer; border-bottom:1px solid var(--border);';
+        createBtn.onclick = showCreateGroupUI;
+        list.appendChild(createBtn);
+
+        if (groupInvites.length > 0) {
+            const invitesHeader = document.createElement('div');
+            invitesHeader.textContent = `invites (${groupInvites.length})`;
+            invitesHeader.style.cssText = "padding:8px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);";
+            list.appendChild(invitesHeader);
+
+            groupInvites.forEach(inv => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 16px;';
+
+                const label = document.createElement('span');
+                label.textContent = `${inv.creator_username} invited you to ${inv.group_name}`;
+                label.style.fontSize = '12px';
+
+                const acceptBtn = document.createElement('button');
+                acceptBtn.textContent = '✓';
+                acceptBtn.style.cssText = 'padding:3px 8px; background:var(--online); border:none; border-radius:6px; margin-left:6px; cursor:pointer;';
+                acceptBtn.onclick = () => respondToGroupInvite(inv.group_id, true);
+
+                const declineBtn = document.createElement('button');
+                declineBtn.textContent = '✕';
+                declineBtn.style.cssText = 'padding:3px 8px; background:var(--border); border:none; border-radius:6px; cursor:pointer; color:var(--text);';
+                declineBtn.onclick = () => respondToGroupInvite(inv.group_id, false);
+
+                row.appendChild(label);
+                const btnGroup = document.createElement('div');
+                btnGroup.appendChild(acceptBtn);
+                btnGroup.appendChild(declineBtn);
+                row.appendChild(btnGroup);
+                list.appendChild(row);
+            });
+        }
+
+        myGroups.forEach(g => {
+            const row = document.createElement('div');
+            row.className = 'contact' + (g.id === activeGroupId ? ' active' : '');
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.style.background = avatarColor(g.id + 100);
+            avatar.textContent = '👥';
+            avatar.style.fontSize = '16px';
+
+            const info = document.createElement('div');
+            info.style.flex = '1';
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'contactName';
+            nameDiv.textContent = g.name;
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'contactStatus';
+            statusDiv.textContent = `${g.member_count} members`;
+            info.appendChild(nameDiv);
+            info.appendChild(statusDiv);
+
+            const unread = groupUnreadCounts[g.id] || 0;
+            if (unread > 0) {
+                const badge = document.createElement('span');
+                badge.textContent = unread;
+                badge.style.cssText = 'background:var(--accent); color:#14171F; font-size:10px; font-weight:600; padding:2px 6px; border-radius:10px;';
+                info.appendChild(badge);
+            }
+
+            row.appendChild(avatar);
+            row.appendChild(info);
+            row.onclick = () => openGroup(g.id, g.name);
+            list.appendChild(row);
+        });
+        return;
+    }
+
+    let filtered = contacts.filter(c => c.id !== myUserId);
+    if (contactFilter === 'unread') {
+        filtered = filtered.filter(c => (unreadCounts[c.id] || 0) > 0);
+    } else if (contactFilter === 'favorites') {
+        filtered = filtered.filter(c => c.is_favorite == 1);
+    }
+
+    filtered.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'contact' + (c.id === activeContactId ? ' active' : '');
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.style.background = avatarColor(c.id);
+        avatar.textContent = initials(c.username);
+
+        const dot = document.createElement('div');
+        dot.className = 'statusDot ' + (onlineStatus[c.id] ? 'online' : 'offline');
+        avatar.appendChild(dot);
+
+        const info = document.createElement('div');
+        info.style.flex = '1';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'contactName';
+        nameDiv.textContent = c.username;
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'contactStatus';
+        statusDiv.textContent = onlineStatus[c.id] ? 'online' : 'offline';
+        info.appendChild(nameDiv);
+        info.appendChild(statusDiv);
+
+        const rightCol = document.createElement('div');
+        rightCol.style.cssText = 'display:flex; flex-direction:column; align-items:flex-end; gap:4px;';
+
+        const starBtn = document.createElement('span');
+        const isFav = c.is_favorite == 1;
+        starBtn.textContent = isFav ? '★' : '☆';
+        starBtn.style.cssText = `cursor:pointer; font-size:14px; color:${isFav ? 'var(--accent)' : 'var(--text-muted)'};`;
+        starBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(c.id, isFav); };
+        rightCol.appendChild(starBtn);
+
+        const unread = unreadCounts[c.id] || 0;
+        if (unread > 0) {
+            const badge = document.createElement('span');
+            badge.textContent = unread;
+            badge.style.cssText = 'background:var(--accent); color:#14171F; font-size:10px; font-weight:600; padding:2px 6px; border-radius:10px; min-width:16px; text-align:center;';
+            rightCol.appendChild(badge);
+        }
+
+        row.appendChild(avatar);
+        row.appendChild(info);
+        row.appendChild(rightCol);
+        row.onclick = () => openConversation(c.id, c.username);
+        list.appendChild(row);
+    });
+}        
+
+            function connectSocket() {
+            socket = io('http://localhost:3000', { auth: { token: myToken } });
+
+            socket.on('newMessage', (msg) => {
+                const otherId = msg.senderId === myUserId ? msg.receiverId : msg.senderId;
+                const contact = contacts.find(c => c.id === otherId);
+                if (contact) {
+                    contact.last_message_at = msg.sentAt;
+                    contacts.sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0));
+                }
+
+                if (msg.senderId === activeContactId || msg.receiverId === activeContactId) {
+                    renderMessage(msg);
+                } else if (msg.senderId !== myUserId) {
+                    unreadCounts[msg.senderId] = (unreadCounts[msg.senderId] || 0) + 1;
+                }
+
+                renderSidebar();
+            });
+
+            socket.on('messageError', (err) => {
+                console.log('Message error:', err.error);
+                alert(err.error); // temporary, just for visibility while testing
+            });
+
+            socket.on('userStatusChanged', ({ userId, status }) => {
+                onlineStatus[userId] = (status === 'online');
+                renderSidebar();
+                if (userId === activeContactId) updateChatHeaderStatus();
+            });
+
+            socket.on('userTyping', ({ userId }) => {
+                if (userId === activeContactId) {
+                    document.getElementById('typingIndicator').textContent = 'typing...';
+                }
+            });
+
+            socket.on('onlineUsersSnapshot', (userIds) => {
+                userIds.forEach(id => onlineStatus[id] = true);
+                renderSidebar();
+            });
+
+            socket.on('connectionAccepted', ({ userId, username }) => {
+                loadContacts();
+                openConversation(userId, username);
+                document.getElementById('searchInput').value = '';
+                document.getElementById('searchResults').innerHTML = '';
+            });
+
+            socket.on('userStoppedTyping', ({ userId }) => {
+                if (userId === activeContactId) {
+                    document.getElementById('typingIndicator').textContent = '';
+                }
+            });
+
+            socket.on('groupInvite', ({ groupId, groupName, inviterUsername }) => {
+                groupInvites.push({ group_id: groupId, group_name: groupName, creator_username: inviterUsername });
+                if (contactFilter === 'groups') renderSidebar();
+            });
+
+            socket.on('newGroupMessage', (msg) => {
+                if (msg.groupId === activeGroupId) {
+                    renderMessage({ ...msg, senderId: msg.senderId });
+                }
+            });
+        }
+
+        function updateChatHeaderStatus() {
+            document.getElementById('chatHeaderStatus').textContent = onlineStatus[activeContactId] ? 'online' : 'offline';
+        }
+
+        async function openConversation(contactId, username) {
+            activeContactId = contactId;
+            oldestLoadedId = null;
+            noMoreHistory = false;
+            renderSidebar();
+            unreadCounts[contactId] = 0;
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('chatHeader').style.display = 'flex';
+            document.getElementById('inputArea').style.display = 'flex';
+            document.getElementById('loadOlderBtn').style.display = 'block';
+            document.getElementById('groupOptionsBtn').style.display = 'none'; 
+
+            const headerAvatar = document.getElementById('headerAvatar');
+            headerAvatar.style.background = avatarColor(contactId);
+            headerAvatar.textContent = initials(username);
+            document.getElementById('chatHeaderName').textContent = username;
+            updateChatHeaderStatus();
+
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('typingIndicator').textContent = '';
+
+            socket.emit('joinRoom', contactId);
+            await loadOlderMessages();
+
+            fetch(`http://localhost:3000/messages/read/${contactId}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+        }
+
+        async function loadOlderMessages() {
+            if (!activeContactId || noMoreHistory) return;
+
+            const url = oldestLoadedId
+                ? `http://localhost:3000/messages/${activeContactId}?before=${oldestLoadedId}`
+                : `http://localhost:3000/messages/${activeContactId}`;
+
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${myToken}` } });
+            const history = await res.json();
+
+            if (history.length === 0) { noMoreHistory = true; document.getElementById('loadOlderBtn').style.display = 'none'; return; }
+            if (history.length < 30) { noMoreHistory = true; document.getElementById('loadOlderBtn').style.display = 'none'; }
+
+            oldestLoadedId = history[0].id;
+
+            const messagesDiv = document.getElementById('messages');
+            const prevScrollHeight = messagesDiv.scrollHeight;
+            const prevScrollTop = messagesDiv.scrollTop;
+            const wasInitialLoad = messagesDiv.children.length === 0;
+
+            history.reverse().forEach(msg => renderMessage(msg, true));
+
+            if (wasInitialLoad) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } else {
+                messagesDiv.scrollTop = prevScrollTop + (messagesDiv.scrollHeight - prevScrollHeight);
+            }
+        }
+
+        function renderMessage(msg, prepend = false) {
+            const messagesDiv = document.getElementById('messages');
+            const senderId = msg.senderId || msg.sender_id;
+            const isMine = senderId === myUserId;
+
+            const row = document.createElement('div');
+            row.className = 'msgRow ' + (isMine ? 'mine' : 'theirs');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg ' + (isMine ? 'mine' : 'theirs');
+
+            const fileUrl = msg.fileUrl || msg.file_url;
+            const fileType = msg.fileType || msg.file_type;
+            const fileName = msg.fileName || msg.file_name;
+
+            if (fileUrl) {
+                const fullUrl = `http://localhost:3000${fileUrl}`;
+
+                if (fileType === 'image') {
+                    const img = document.createElement('img');
+                    img.src = fullUrl;
+                    img.style.cssText = 'max-width:220px; border-radius:8px; display:block;';
+                    bubble.appendChild(img);
+                } else if (fileType === 'audio') {
+                    const audio = document.createElement('audio');
+                    audio.src = fullUrl;
+                    audio.controls = true;
+                    audio.style.maxWidth = '220px';
+                    bubble.appendChild(audio);
+                } else if (fileType === 'video') {
+                    const video = document.createElement('video');
+                    video.src = fullUrl;
+                    video.controls = true;
+                    video.style.cssText = 'max-width:220px; border-radius:8px;';
+                    bubble.appendChild(video);
+                } else {
+                    const link = document.createElement('a');
+                    link.href = fullUrl;
+                    link.target = '_blank';
+                    link.textContent = `📄 ${fileName}`;
+                    link.style.color = 'inherit';
+                    bubble.appendChild(link);
+                }
+            }
+
+            if (activeGroupId && !isMine) {
+                const senderLabel = document.createElement('div');
+                senderLabel.textContent = msg.senderUsername || msg.sender_username;
+                senderLabel.style.cssText = "font-size:11px; color:var(--accent); margin-bottom:2px; font-weight:600;";
+                bubble.appendChild(senderLabel);
+            }
+
+            if (msg.content) {
+                const textDiv = document.createElement('div');
+                textDiv.textContent = msg.content;
+                textDiv.style.marginTop = fileUrl ? '6px' : '0';
+                bubble.appendChild(textDiv);
+            }
+
+            const meta = document.createElement('div');
+            meta.className = 'msgMeta';
+            const time = new Date(msg.sentAt || msg.sent_at);
+            const timeStr = isNaN(time) ? '' : time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            meta.textContent = timeStr;
+
+            bubble.appendChild(meta);
+            row.appendChild(bubble);
+
+            if (prepend) {
+                messagesDiv.insertBefore(row, messagesDiv.firstChild);
+            } else {
+                messagesDiv.appendChild(row);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            if (!content && !pendingFile) return;
+
+            if (activeGroupId) {
+                socket.emit('sendGroupMessage', {
+                    groupId: activeGroupId,
+                    content,
+                    fileUrl: pendingFile?.fileUrl || null,
+                    fileName: pendingFile?.fileName || null,
+                    fileType: pendingFile?.fileType || null
+                });
+            } else if (activeContactId) {
+                socket.emit('sendMessage', {
+                    receiverId: activeContactId,
+                    content,
+                    fileUrl: pendingFile?.fileUrl || null,
+                    fileName: pendingFile?.fileName || null,
+                    fileType: pendingFile?.fileType || null
+                });
+                socket.emit('stopTyping', activeContactId);
+            } else {
+                return;
+            }
+
+            input.value = '';
+            input.placeholder = 'Write a message...';
+            pendingFile = null;
+        }
+
+        function handleTyping() {
+            if (!activeContactId) return;
+            socket.emit('typing', activeContactId);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => socket.emit('stopTyping', activeContactId), 2000);
+        }
+
+        document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        document.getElementById('passwordField').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleAuth();
+        });
+
+        let activeNicheId = null;
+
+ function switchTab(tab) {
+    const chatsTab = document.getElementById('tabChats');
+    const nichesTab = document.getElementById('tabNiches');
+    const contactList = document.getElementById('contactList');
+    const nichesPanel = document.getElementById('nichesPanel');
+
+    if (tab === 'chats') {
+        chatsTab.style.background = 'var(--panel-hover)'; chatsTab.style.color = 'var(--text)';
+        nichesTab.style.background = 'none'; nichesTab.style.color = 'var(--text-muted)';
+        contactList.style.display = 'block';
+        nichesPanel.style.display = 'none';
+
+        document.getElementById('nichesMainArea').style.display = 'none';
+        document.getElementById('chatArea').style.display = 'flex';
+
+        document.getElementById('chatHeader').style.display = activeContactId || activeGroupId ? 'flex' : 'none';
+        document.getElementById('inputArea').style.display = activeContactId || activeGroupId ? 'flex' : 'none';
+        document.getElementById('emptyState').style.display = (activeContactId || activeGroupId) ? 'none' : 'block';
+        document.getElementById('messages').style.display = 'flex';
+        document.getElementById('loadOlderBtn').style.display = (activeContactId && !noMoreHistory) ? 'block' : 'none';
+
+    } else {
+        nichesTab.style.background = 'var(--panel-hover)'; nichesTab.style.color = 'var(--text)';
+        chatsTab.style.background = 'none'; chatsTab.style.color = 'var(--text-muted)';
+        contactList.style.display = 'none';
+        nichesPanel.style.display = 'block';
+
+        document.getElementById('chatArea').style.display = 'none';
+        document.getElementById('nichesMainArea').style.display = 'flex';
+
+        loadFollowedNiches();
+        loadMyNiches();
+        loadExplore();
+    }
+}
+
+        async function loadFollowedNiches() {
+            const res = await fetch('http://localhost:3000/niches/following', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const niches = await res.json();
+            renderNicheRows(niches, document.getElementById('nicheList'), false);
+        }
+
+        async function createNiche() {
+            const input = document.getElementById('newNicheInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const res = await fetch('http://localhost:3000/niches', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+
+            if (!res.ok) { alert(data.error); return; }
+
+            input.value = '';
+            loadFollowedNiches();
+            loadMyNiches();
+            openNiche(data.id, data.name, data.description || '');
+        }
+
+        function openNiche(nicheId, name, description) {
+            activeNicheId = nicheId;
+            document.getElementById('nicheDetailName').textContent = name;
+            document.getElementById('nicheDetailDesc').textContent = description || '';
+
+            document.getElementById('nicheEmptyState').style.display = 'none';
+            document.getElementById('nicheDetailContent').style.display = 'flex';
+
+            loadSubniches(nicheId);
+            loadPosts();
+        }
+
+        let nicheBackStack = [];
+
+        function backToNicheList() {
+            if (nicheBackStack.length > 0) {
+                const prev = nicheBackStack.pop();
+                openNiche(prev.id, prev.name, prev.description);
+            } else {
+                activeNicheId = null;
+                document.getElementById('nicheDetailContent').style.display = 'none';
+                document.getElementById('nicheEmptyState').style.display = 'block';
+            }
+        }
+
+        async function loadPosts() {
+            const res = await fetch(`http://localhost:3000/niches/${activeNicheId}/posts`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const posts = await res.json();
+
+            const list = document.getElementById('postsList');
+            list.innerHTML = '';
+
+            posts.forEach(p => {
+                const card = document.createElement('div');
+                card.style.cssText = 'background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; display:flex; gap:12px;';
+
+                const voteCol = document.createElement('div');
+                voteCol.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:2px;';
+
+                const upvoteBtn = document.createElement('button');
+                const isUpvoted = p.i_upvoted == 1;
+                upvoteBtn.textContent = '▲';
+                upvoteBtn.style.cssText = `background:none; border:none; cursor:pointer; font-size:16px; color:${isUpvoted ? 'var(--accent)' : 'var(--text-muted)'};`;
+                upvoteBtn.onclick = async () => {
+                    await fetch(`http://localhost:3000/posts/${p.id}/upvote`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${myToken}` }
+                    });
+                    loadPosts();
+                };
+
+                const voteCount = document.createElement('div');
+                voteCount.textContent = p.vote_count;
+                voteCount.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-muted);";
+
+                voteCol.appendChild(upvoteBtn);
+                voteCol.appendChild(voteCount);
+
+                const contentCol = document.createElement('div');
+                contentCol.style.flex = '1';
+
+                if (p.file_url) {
+                    const fullUrl = `http://localhost:3000${p.file_url}`;
+                    if (p.file_type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = fullUrl;
+                        img.style.cssText = 'width:100%; max-width:400px; border-radius:8px; margin-bottom:8px; display:block;';
+                        contentCol.appendChild(img);
+                    } else if (p.file_type === 'video') {
+                        const video = document.createElement('video');
+                        video.src = fullUrl;
+                        video.controls = true;
+                        video.style.cssText = 'width:100%; max-width:400px; border-radius:8px; margin-bottom:8px;';
+                        contentCol.appendChild(video);
+                    }
+                }
+
+                const authorDiv = document.createElement('div');
+                authorDiv.textContent = p.author_username;
+                authorDiv.style.cssText = "font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px; cursor:pointer; display:inline-block;";
+                authorDiv.onclick = () => showUserProfile(p.author_id, p.author_username);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = p.content;
+                contentDiv.style.cssText = 'margin:6px 0; font-size:14px; line-height:1.4;';
+
+                const repliesToggle = document.createElement('div');
+                repliesToggle.textContent = `${p.reply_count} replies — view`;
+                repliesToggle.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); cursor:pointer;";
+
+                const repliesContainer = document.createElement('div');
+                repliesContainer.style.cssText = 'display:none; margin-top:10px; padding-left:12px; border-left:2px solid var(--border);';
+
+                repliesToggle.onclick = async () => {
+                    const isOpen = repliesContainer.style.display === 'block';
+                    repliesContainer.style.display = isOpen ? 'none' : 'block';
+                    if (!isOpen) await loadReplies(p.id, repliesContainer);
+                };
+
+                contentCol.appendChild(authorDiv);
+                contentCol.appendChild(contentDiv);
+                contentCol.appendChild(repliesToggle);
+                contentCol.appendChild(repliesContainer);
+
+                card.appendChild(voteCol);
+                card.appendChild(contentCol);
+                list.appendChild(card);
+            });
+        }
+
+        async function loadMyNiches() {
+            const res = await fetch('http://localhost:3000/niches/mine', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const niches = await res.json();
+            renderNicheRows(niches, document.getElementById('myNicheList'), false);
+        }
+
+        async function loadReplies(postId, container) {
+            const res = await fetch(`http://localhost:3000/posts/${postId}/replies`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const replies = await res.json();
+
+            container.innerHTML = '';
+
+            replies.forEach(r => {
+                const replyRow = document.createElement('div');
+                replyRow.style.cssText = 'display:flex; gap:8px; margin:8px 0;';
+
+                const voteCol = document.createElement('div');
+                voteCol.style.cssText = 'display:flex; flex-direction:column; align-items:center;';
+
+                const upvoteBtn = document.createElement('button');
+                const isUpvoted = r.i_upvoted == 1;
+                upvoteBtn.textContent = '▲';
+                upvoteBtn.style.cssText = `background:none; border:none; cursor:pointer; font-size:12px; color:${isUpvoted ? 'var(--accent)' : 'var(--text-muted)'};`;
+                upvoteBtn.onclick = async () => {
+                    await fetch(`http://localhost:3000/replies/${r.id}/upvote`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${myToken}` }
+                    });
+                    loadReplies(postId, container);
+                };
+
+                const voteCount = document.createElement('div');
+                voteCount.textContent = r.vote_count;
+                voteCount.style.cssText = "font-size:10px; color:var(--text-muted);";
+
+                voteCol.appendChild(upvoteBtn);
+                voteCol.appendChild(voteCount);
+
+                const contentCol = document.createElement('div');
+                contentCol.style.flex = '1';
+
+                if (r.replying_to_username) {
+                    const replyingTo = document.createElement('div');
+                    replyingTo.textContent = `replying to @${r.replying_to_username}`;
+                    replyingTo.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent);";
+                    contentCol.appendChild(replyingTo);
+                }
+
+                const textLine = document.createElement('div');
+                textLine.style.fontSize = '13px';
+                const authorSpan = document.createElement('span');
+                authorSpan.textContent = r.author_username + ': ';
+                authorSpan.style.fontWeight = '600';
+                const contentSpan = document.createElement('span');
+                contentSpan.textContent = r.content;
+                textLine.appendChild(authorSpan);
+                textLine.appendChild(contentSpan);
+                contentCol.appendChild(textLine);
+
+                const replyLink = document.createElement('div');
+                replyLink.textContent = 'reply';
+                replyLink.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted); cursor:pointer; margin-top:2px;";
+                replyLink.onclick = () => showNestedReplyInput(postId, r.id, r.author_username, container);
+                contentCol.appendChild(replyLink);
+
+                replyRow.appendChild(voteCol);
+                replyRow.appendChild(contentCol);
+                container.appendChild(replyRow);
+            });
+
+            const replyInput = document.createElement('input');
+            replyInput.placeholder = 'Write a reply...';
+            replyInput.style.cssText = 'width:100%; margin-top:8px; padding:6px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:12px;';
+            replyInput.onkeypress = async (e) => {
+                if (e.key === 'Enter' && replyInput.value.trim()) {
+                    await submitReply(postId, replyInput.value.trim(), null, container);
+                }
+            };
+            container.appendChild(replyInput);
+        }
+
+        async function submitReply(postId, content, parentReplyId, container) {
+            await fetch(`http://localhost:3000/posts/${postId}/replies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ content, parentReplyId })
+            });
+            loadReplies(postId, container);
+            loadPosts();
+        }
+
+        function showNestedReplyInput(postId, parentReplyId, parentUsername, container) {
+            const existing = document.getElementById('nestedReplyInput');
+            if (existing) existing.remove();
+
+            const input = document.createElement('input');
+            input.id = 'nestedReplyInput';
+            input.placeholder = `Reply to @${parentUsername}...`;
+            input.style.cssText = 'width:100%; margin:6px 0; padding:6px 10px; background:var(--bg); border:1px solid var(--accent); border-radius:6px; color:var(--text); font-size:12px;';
+            input.onkeypress = async (e) => {
+                if (e.key === 'Enter' && input.value.trim()) {
+                    await submitReply(postId, input.value.trim(), parentReplyId, container);
+                }
+            };
+            container.appendChild(input);
+            input.focus();
+        }
+
+        let pendingNichePostFile = null;
+
+        async function handleNichePostFileSelected() {
+            const fileInput = document.getElementById('nichePostFileInput');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('http://localhost:3000/upload', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${myToken}` },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (!res.ok) { alert(data.error); return; }
+
+            pendingNichePostFile = data;
+            document.getElementById('nichePostFileLabel').textContent = data.fileName;
+            fileInput.value = '';
+        }
+
+        async function createPost() {
+            const input = document.getElementById('newPostInput');
+            const content = input.value.trim();
+            if (!content && !pendingNichePostFile) return;
+            if (!activeNicheId) return;
+
+            await fetch(`http://localhost:3000/niches/${activeNicheId}/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({
+                    content,
+                    fileUrl: pendingNichePostFile?.fileUrl || null,
+                    fileName: pendingNichePostFile?.fileName || null,
+                    fileType: pendingNichePostFile?.fileType || null
+                })
+            });
+
+            input.value = '';
+            pendingNichePostFile = null;
+            document.getElementById('nichePostFileLabel').textContent = 'Add photo/video';
+            loadPosts();
+            loadFollowedNiches();
+        }        let nicheSearchTimeout = null;
+
+        function handleNicheSearch() {
+            clearTimeout(nicheSearchTimeout);
+            nicheSearchTimeout = setTimeout(runNicheSearch, 300);
+        }
+
+        async function runNicheSearch() {
+            const query = document.getElementById('nicheSearchInput').value.trim();
+            const resultsDiv = document.getElementById('nicheSearchResults');
+            resultsDiv.innerHTML = '';
+            if (!query) return;
+
+            const res = await fetch(`http://localhost:3000/niches?query=${encodeURIComponent(query)}`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const niches = await res.json();
+            renderNicheRows(niches, resultsDiv, true);
+        }
+
+        function renderNicheRows(niches, container, showFollowButton) {
+            container.innerHTML = '';
+            niches.forEach(n => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);';
+
+                const info = document.createElement('div');
+                info.style.cursor = 'pointer';
+                info.onclick = () => { nicheBackStack = []; openNiche(n.id, n.name, n.description); };
+
+                const nameDiv = document.createElement('div');
+                nameDiv.textContent = n.name;
+                nameDiv.style.cssText = 'font-weight:500; font-size:13px;';
+
+                const metaDiv = document.createElement('div');
+                metaDiv.textContent = `${n.post_count} posts`;
+                metaDiv.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);";
+
+                info.appendChild(nameDiv);
+                info.appendChild(metaDiv);
+                row.appendChild(info);
+
+                if (showFollowButton) {
+                    const isFollowing = n.is_following == 1;
+                    const btn = document.createElement('button');
+                    btn.textContent = isFollowing ? 'Following' : 'Follow';
+                    btn.style.cssText = `padding:4px 10px; border-radius:12px; font-size:11px; cursor:pointer; font-family:'JetBrains Mono',monospace; border:1px solid var(--border); background:${isFollowing ? 'none' : 'var(--accent)'}; color:${isFollowing ? 'var(--text-muted)' : '#14171F'};`;
+                    btn.onclick = async () => {
+                        const method = isFollowing ? 'DELETE' : 'POST';
+                        await fetch(`http://localhost:3000/niches/${n.id}/follow`, {
+                            method,
+                            headers: { Authorization: `Bearer ${myToken}` }
+                        });
+                        loadFollowedNiches();
+                        runNicheSearch();
+                    };
+                    row.appendChild(btn);
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        let pendingFile = null;
+
+        async function handleFileSelected() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${myToken}` },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || 'upload failed');
+                    return;
+                }
+
+                pendingFile = data;
+                document.getElementById('messageInput').placeholder = `📎 ${data.fileName} ready to send`;
+            } catch (err) {
+                alert('upload failed');
+            }
+            fileInput.value = '';
+        }
+
+
+        let contactFilter = 'all';
+        let unreadCounts = {};
+
+        function setContactFilter(filter) {
+            contactFilter = filter;
+            document.querySelectorAll('.filterTab').forEach(btn => {
+                const active = btn.dataset.filter === filter;
+                btn.style.background = active ? 'var(--panel-hover)' : 'none';
+                btn.style.color = active ? 'var(--text)' : 'var(--text-muted)';
+            });
+            renderSidebar();
+        }
+
+        async function loadUnreadCounts() {
+            const res = await fetch('http://localhost:3000/messages/unread-counts', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const rows = await res.json();
+            unreadCounts = {};
+            rows.forEach(r => unreadCounts[r.contact_id] = r.unread_count);
+            renderSidebar();
+        }
+
+        async function toggleFavorite(contactId, currentlyFavorite) {
+            const method = currentlyFavorite ? 'DELETE' : 'POST';
+            await fetch(`http://localhost:3000/contacts/${contactId}/favorite`, {
+                method,
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            loadContacts();
+        }
+
+        let myGroups = [];
+        let activeGroupId = null;
+
+        async function loadMyGroups() {
+            const res = await fetch('http://localhost:3000/groups/mine', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            myGroups = await res.json();
+            if (contactFilter === 'groups') renderSidebar();
+        }
+
+function showCreateGroupUI() {
+    const wrapper = document.createElement('div');
+
+    const nameInput = modalInput('Group name');
+    wrapper.appendChild(nameInput);
+
+    const label = document.createElement('div');
+    label.textContent = 'Select members:';
+    label.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-bottom:8px;";
+    wrapper.appendChild(label);
+
+    const memberList = document.createElement('div');
+    memberList.style.cssText = 'max-height:180px; overflow-y:auto; margin-bottom:14px;';
+    const selectedIds = new Set();
+
+    contacts.filter(c => c.id !== myUserId).forEach(c => {
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; cursor:pointer;';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.onchange = () => {
+            if (checkbox.checked) selectedIds.add(c.id);
+            else selectedIds.delete(c.id);
+        };
+
+        const name = document.createElement('span');
+        name.textContent = c.username;
+
+        row.appendChild(checkbox);
+        row.appendChild(name);
+        memberList.appendChild(row);
+    });
+    wrapper.appendChild(memberList);
+
+    const submitBtn = modalButton('Create Group');
+    submitBtn.onclick = () => {
+        const name = nameInput.value.trim();
+        if (!name) { nameInput.style.borderColor = 'var(--accent)'; return; }
+        if (selectedIds.size === 0) { alert('Select at least one member.'); return; }
+        createGroup(name, [...selectedIds]);
+        closeModal();
+    };
+    wrapper.appendChild(submitBtn);
+
+    openModal('New Group', wrapper);
+}
+
+async function createGroup(name, memberIds) {
+    const res = await fetch('http://localhost:3000/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+        body: JSON.stringify({ name, memberIds })
+    });
+    const data = await res.json();
+
+    if (!res.ok) { alert(data.error); return; }
+
+    await loadMyGroups();
+    openGroup(data.id, data.name);
+}
+
+        async function openGroup(groupId, name) {
+            activeGroupId = groupId;
+            activeContactId = null;
+            renderSidebar();
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('chatHeader').style.display = 'flex';
+            document.getElementById('inputArea').style.display = 'flex';
+            document.getElementById('loadOlderBtn').style.display = 'none';
+
+            document.getElementById('headerAvatar').textContent = '👥';
+            document.getElementById('headerAvatar').style.background = avatarColor(groupId + 100);
+            document.getElementById('chatHeaderName').textContent = name;
+            document.getElementById('chatHeaderStatus').textContent = '';
+
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('typingIndicator').textContent = '';
+
+            document.getElementById('groupOptionsBtn').style.display = 'inline-block';
+
+            socket.emit('joinGroupRoom', groupId);
+
+            const membersRes = await fetch(`http://localhost:3000/groups/${groupId}/members`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            currentGroupMembers = await membersRes.json();
+
+            const res = await fetch(`http://localhost:3000/groups/${groupId}/messages`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const messages = await res.json();
+            messages.forEach(msg => renderMessage(msg));
+
+            await fetch(`http://localhost:3000/groups/${groupId}/mark-read`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            groupUnreadCounts[groupId] = 0;
+        }
+
+        let groupInvites = [];
+        let groupUnreadCounts = {};
+        let currentGroupMembers = [];
+
+        async function loadGroupInvites() {
+            const res = await fetch('http://localhost:3000/groups/invites/pending', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            groupInvites = await res.json();
+            if (contactFilter === 'groups') renderSidebar();
+        }
+
+        async function respondToGroupInvite(groupId, accept) {
+            await fetch(`http://localhost:3000/groups/${groupId}/invites/respond`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ accept })
+            });
+            await loadGroupInvites();
+            await loadMyGroups();
+        }
+
+        async function loadGroupUnreadCounts() {
+            const res = await fetch('http://localhost:3000/groups/unread-counts', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const rows = await res.json();
+            groupUnreadCounts = {};
+            rows.forEach(r => groupUnreadCounts[r.group_id] = r.unread_count);
+            if (contactFilter === 'groups') renderSidebar();
+        }
+
+function showGroupOptions() {
+    const myRole = currentGroupMembers.find(m => m.id === myUserId)?.role;
+    const isAdmin = myRole === 'creator' || myRole === 'admin';
+
+    const wrapper = document.createElement('div');
+
+    const membersLabel = document.createElement('div');
+    membersLabel.textContent = 'Members:';
+    membersLabel.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-bottom:6px;";
+    wrapper.appendChild(membersLabel);
+
+    currentGroupMembers.forEach(m => {
+        const row = document.createElement('div');
+        row.style.cssText = 'font-size:13px; padding:4px 0;';
+        row.textContent = `${m.username}${m.role !== 'member' ? ` (${m.role})` : ''}`;
+        wrapper.appendChild(row);
+    });
+
+    const spacer = document.createElement('div');
+    spacer.style.height = '14px';
+    wrapper.appendChild(spacer);
+
+    if (isAdmin) {
+        const addInput = modalInput('Username to add');
+        wrapper.appendChild(addInput);
+        const addBtn = modalButton('Send Invite', false);
+        addBtn.style.marginBottom = '10px';
+        addBtn.onclick = async () => {
+            const username = addInput.value.trim();
+            if (!username) return;
+            const res = await fetch(`http://localhost:3000/groups/${activeGroupId}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (!res.ok) alert(data.error); else { addInput.value = ''; addInput.placeholder = 'Invite sent!'; }
+        };
+        wrapper.appendChild(addBtn);
+
+        const adminInput = modalInput('Username to make admin');
+        wrapper.appendChild(adminInput);
+        const adminBtn = modalButton('Make Admin', false);
+        adminBtn.style.marginBottom = '10px';
+        adminBtn.onclick = async () => {
+            const username = adminInput.value.trim();
+            const target = currentGroupMembers.find(m => m.username.toLowerCase() === username.toLowerCase());
+            if (!target) { alert('User not found in this group.'); return; }
+            await fetch(`http://localhost:3000/groups/${activeGroupId}/members/${target.id}/role`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ role: 'admin' })
+            });
+            adminInput.value = '';
+            adminInput.placeholder = 'Done!';
+        };
+        wrapper.appendChild(adminBtn);
+    }
+
+    const leaveBtn = modalButton('Leave Group', false);
+    leaveBtn.style.color = 'var(--accent)';
+    leaveBtn.onclick = async () => {
+        await fetch(`http://localhost:3000/groups/${activeGroupId}/leave`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${myToken}` }
+        });
+        activeGroupId = null;
+        document.getElementById('chatHeader').style.display = 'none';
+        document.getElementById('inputArea').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+        await loadMyGroups();
+        closeModal();
+    };
+    wrapper.appendChild(leaveBtn);
+
+    openModal('Group Options', wrapper);
+}
+        async function loadExplore() {
+            const res = await fetch('http://localhost:3000/niches/explore', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const niches = await res.json();
+
+            const grid = document.getElementById('exploreAreaGrid');
+            grid.innerHTML = '';
+
+            niches.forEach(n => {
+                const card = document.createElement('div');
+                card.style.cssText = 'border-radius:12px; overflow:hidden; cursor:pointer; background:var(--panel); border:1px solid var(--border);';
+                card.onclick = () => { nicheBackStack = []; openNiche(n.id, n.name, n.description); };
+
+                if (n.banner_url) {
+                    const img = document.createElement('img');
+                    img.src = `http://localhost:3000${n.banner_url}`;
+                    img.style.cssText = 'width:100%; height:140px; object-fit:cover; display:block;';
+                    card.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.style.cssText = 'width:100%; height:140px; background:var(--panel-hover); display:flex; align-items:center; justify-content:center; font-size:36px;';
+                    placeholder.textContent = '🗂️';
+                    card.appendChild(placeholder);
+                }
+
+                const label = document.createElement('div');
+                label.style.padding = '10px 12px';
+                const nameDiv = document.createElement('div');
+                nameDiv.textContent = n.name;
+                nameDiv.style.cssText = 'font-size:14px; font-weight:600;';
+                const metaDiv = document.createElement('div');
+                metaDiv.textContent = n.subniche_count > 0 ? `${n.subniche_count} subniches` : `${n.post_count} posts`;
+                metaDiv.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);";
+                label.appendChild(nameDiv);
+                label.appendChild(metaDiv);
+                card.appendChild(label);
+
+                grid.appendChild(card);
+            });
+        }
+        
+        async function loadSubniches(nicheId) {
+            const res = await fetch(`http://localhost:3000/niches/${nicheId}/subniches`, {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const subs = await res.json();
+
+            const row = document.getElementById('subnicheRow');
+            row.innerHTML = '';
+
+            if (subs.length === 0) { row.style.display = 'none'; return; }
+            row.style.display = 'flex';
+
+            subs.forEach(s => {
+                const chip = document.createElement('div');
+                chip.textContent = s.name;
+                chip.style.cssText = 'padding:6px 14px; background:var(--panel-hover); border:1px solid var(--border); border-radius:16px; font-size:12px; white-space:nowrap; cursor:pointer;';
+                chip.onclick = () => {
+                    nicheBackStack.push({
+                        id: activeNicheId,
+                        name: document.getElementById('nicheDetailName').textContent,
+                        description: document.getElementById('nicheDetailDesc').textContent
+                    });
+                    openNiche(s.id, s.name, s.description);
+                };
+                row.appendChild(chip);
+            });
+        }
+
+
+async function showUserProfile(userId, username) {
+    if (userId === myUserId) return;
+
+    const res = await fetch(`http://localhost:3000/users/${userId}/profile`, {
+        headers: { Authorization: `Bearer ${myToken}` }
+    });
+    const profile = await res.json();
+
+    const wrapper = document.createElement('div');
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.style.cssText += 'width:56px; height:56px; font-size:20px; margin:0 auto 12px;';
+    avatar.style.background = avatarColor(profile.id);
+    avatar.textContent = initials(profile.username);
+    wrapper.appendChild(avatar);
+
+    const createdLabel = document.createElement('div');
+    createdLabel.textContent = 'Created niches';
+    createdLabel.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px;";
+    wrapper.appendChild(createdLabel);
+
+    const createdVal = document.createElement('div');
+    createdVal.textContent = profile.createdNiches.map(n => n.name).join(', ') || 'none';
+    createdVal.style.fontSize = '13px';
+    wrapper.appendChild(createdVal);
+
+    const followingLabel = document.createElement('div');
+    followingLabel.textContent = 'Following';
+    followingLabel.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:10px;";
+    wrapper.appendChild(followingLabel);
+
+    const followingVal = document.createElement('div');
+    followingVal.textContent = profile.followingNiches.map(n => n.name).join(', ') || 'none';
+    followingVal.style.fontSize = '13px';
+    wrapper.appendChild(followingVal);
+
+    const spacer = document.createElement('div');
+    spacer.style.height = '16px';
+    wrapper.appendChild(spacer);
+
+    if (profile.connectionStatus === 'accepted') {
+        const status = modalButton('Already connected', false);
+        status.disabled = true;
+        wrapper.appendChild(status);
+    } else if (profile.connectionStatus === 'pending') {
+        const status = modalButton('Request pending', false);
+        status.disabled = true;
+        wrapper.appendChild(status);
+    } else {
+        const connectBtn = modalButton('Send Connection Request');
+        connectBtn.onclick = async () => {
+            const reqRes = await fetch('http://localhost:3000/connections/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${myToken}` },
+                body: JSON.stringify({ addresseeId: userId })
+            });
+            const data = await reqRes.json();
+            if (!reqRes.ok) { connectBtn.textContent = data.error; return; }
+            connectBtn.textContent = 'Request sent!';
+            connectBtn.disabled = true;
+        };
+        wrapper.appendChild(connectBtn);
+    }
+
+    openModal(profile.username, wrapper);
+}
+
+        async function loadContacts() {
+            const res = await fetch('http://localhost:3000/connections/accepted', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const raw = await res.json();
+            const seen = new Set();
+            contacts = raw.filter(c => {
+                if (seen.has(c.id)) return false;
+                seen.add(c.id);
+                return true;
+            });
+            renderSidebar();
+        }
+
+        function toggleSentRequests() {
+            const list = document.getElementById('sentRequestsList');
+            const isOpen = list.style.display === 'block';
+            list.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) loadSentRequests();
+        }
+
+        async function loadSentRequests() {
+            const res = await fetch('http://localhost:3000/connections/sent-pending', {
+                headers: { Authorization: `Bearer ${myToken}` }
+            });
+            const sent = await res.json();
+
+            document.getElementById('sentRequestCount').textContent = sent.length;
+
+            const listDiv = document.getElementById('sentRequestsList');
+            listDiv.innerHTML = '';
+
+            sent.forEach(r => {
+                const row = document.createElement('div');
+                row.style.cssText = 'padding:6px 4px; font-size:12px; color:var(--text-muted);';
+                row.textContent = `waiting on ${r.addressee_username}`;
+                listDiv.appendChild(row);
+            });
+        }
+
+function logout() {
+    if (socket) socket.disconnect();
+
+    myToken = null;
+    myUserId = null;
+    contacts = [];
+    activeContactId = null;
+    activeGroupId = null;
+    activeNicheId = null;
+    onlineStatus = {};
+    unreadCounts = {};
+    groupUnreadCounts = {};
+    myGroups = [];
+    groupInvites = [];
+
+    document.getElementById('chatScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('emailField').value = '';
+    document.getElementById('passwordField').value = '';
+}
+
+function openModal(title, contentEl) {
+    document.getElementById('modalTitle').textContent = title;
+    const content = document.getElementById('modalContent');
+    content.innerHTML = '';
+    content.appendChild(contentEl);
+    document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+}
+
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') closeModal();
+});
+
+function modalInput(placeholder) {
+    const input = document.createElement('input');
+    input.placeholder = placeholder;
+    input.style.cssText = 'width:100%; padding:10px; margin-bottom:10px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:"Inter",sans-serif; font-size:13px;';
+    return input;
+}
+
+function modalButton(label, primary = true) {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = `width:100%; padding:10px; border-radius:8px; font-size:13px; cursor:pointer; font-family:'Space Grotesk',sans-serif; font-weight:600; border:${primary ? 'none' : '1px solid var(--border)'}; background:${primary ? 'var(--accent)' : 'none'}; color:${primary ? '#14171F' : 'var(--text)'};`;
+    return btn;
+}
+
+    </script>
+</body>
+</html>
