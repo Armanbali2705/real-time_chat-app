@@ -60,13 +60,13 @@ A full-stack real-time messaging platform with 1:1 chat, group chat, and Reddit/
 ## Running Locally
 
 1. Clone the repo and run `npm install`
-2. Set up a MySQL database and run the schema (see `/schema` or set up statements referenced in project history)
+2. Set up a MySQL database and run the schema: mysql -u root -p chat_app < schema.sql
 3. Create a `.env` file with:
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=chat_app
-JWT_SECRET=your_secret_here
+DB_HOST=localhost,
+DB_USER=root,
+DB_PASSWORD=your_password,
+DB_NAME=chat_app,
+JWT_SECRET=your_secret_here,
 PORT=3000
 4. Run `node server.js`
 5. Open `app.html` in a browser (via Live Server or similar)
